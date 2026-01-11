@@ -1,0 +1,96 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sast:
+    name: Analyse SAST du code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit SAST
+        run: |
+          bandit -r api -f json -o bandit-report.json || true
+
+      - name: Fail if critical SAST findings
+        run: |
+          CRITICAL=$(jq '[.results[] | select(.issue_severity == "HIGH")] | length' bandit-report.json)
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "Critical SAST findings detected! Failing the build."
+            exit 1
+          fi
+
+  python-security:
+    name: Analyse de sécurité Python
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Install safety
+        run: pip install safety
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Scan dependencies with safety
+        run: |
+          safety check -r requirements.txt --json > safety-report.json || true
+
+      - name: Fail if critical dependency vulnerabilities
+        run: |
+          CRITICAL=$(cat safety-report.json | jq '[.[] | select(.vuln_severity == "critical")] | length')
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "Critical vulnerabilities in dependencies detected! Failing the build."
+            exit 1
+          fi
+
+  docker-vuln-scan:
+    name: Scan de vulnérabilités de l’image Docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: docker build -t myapp-devsecops:latest .
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.15.0
+        with:
+          image-ref: myapp-devsecops:latest
+          format: "json"
+          output: "trivy-report.json"
+          ignore-unfixed: true
+
+      - name: Fail if critical Docker image vulnerabilities
+        run: |
+          CRITICAL=$(jq '[.Results[].Vulnerabilities[] | select(.Severity == "CRITICAL")] | length' trivy-report.json)
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "Critical vulnerabilities found in Docker image! Failing the build."
+            exit 1
+          fi
