@@ -60,3 +60,37 @@ jobs:
           image-ref: devsecops-api
           severity: CRITICAL,HIGH
           exit-code: 1
+
+      ############################################
+      # 5. Validation finale et blocage
+      ############################################
+      - name: Check scan results
+        run: |
+          EXIT_CODE=0
+
+          if [ "${{ steps.bandit_scan.outcome }}" == "failure" ]; then
+            echo "Bandit found critical issues"
+            EXIT_CODE=1
+          fi
+
+          if [ "${{ steps.safety_scan.outcome }}" == "failure" ]; then
+            echo "Safety found critical vulnerabilities"
+            EXIT_CODE=1
+          fi
+
+          if [ "${{ steps.trivy_image.outcome }}" == "failure" ]; then
+            echo "Trivy image scan found CRITICAL/HIGH vulnerabilities"
+            EXIT_CODE=1
+          fi
+
+          if [ "${{ steps.trivy_fs.outcome }}" == "failure" ]; then
+            echo "Trivy filesystem scan found CRITICAL/HIGH vulnerabilities"
+            EXIT_CODE=1
+          fi
+
+          if [ $EXIT_CODE -eq 1 ]; then
+            echo "Pipeline blocked: critical vulnerabilities detected"
+            exit 1
+          else
+            echo "All security scans passed"
+          fi
