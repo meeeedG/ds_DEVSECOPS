@@ -1,6 +1,6 @@
 # Sécurisation d'une Application Python via une Pipeline CI/CD (DevSecOps)
 
-Ce projet a été réalisé dans le cadre du cours de **DevSecOps** à **Mundiapolis**. L'objectif est de sécuriser une application web Flask vulnérable en intégrant des contrôles de sécurité automatisés dans une pipeline CI/CD GitHub Actions.
+Ce projet a été réalisé dans le cadre du cours de **DevSecOps**. L'objectif est de sécuriser une application web Flask vulnérable en intégrant des contrôles de sécurité automatisés dans une pipeline CI/CD GitHub Actions.
 
 ## 🚀 Objectifs du Projet
 
@@ -57,6 +57,5 @@ docker run -p 5000:5000 devsecops-api
 ```
 
 ---
-**Auteur :** Mohamed G. (meeeedG)  
-**Établissement :** Mundiapolis  
-**Cours :** DevSecOps - 2026
+**Auteur :** Mohamed Ghalib (meeeedG)    
+**DevSecOps**
